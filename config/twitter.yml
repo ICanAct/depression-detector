@@ -1,0 +1,44 @@
+Model:
+  params: {
+            epoch: 10,
+            batch_size: 32,
+            padding_idx: -100, 
+            max_seq_length: 128,
+            lr: 0.00005,
+            eps: 0.00000008,
+            display_step: 100,
+            lr_warmup: 0.01, 
+            dropout: 0.5,
+            grad_clip: 5.0,
+            num_workers: 4,
+            }
+
+  Name:  # add your bert model path here. 
+  Pretrain_Bert: True
+  Pretrain_Tokenizer: # add tokenizer path here. 
+  tuning: False
+  tuning_params: {
+    batch_size: [16, 32, 64],
+    lr: [0.00001, 0.00002, 0.00005],
+    eps: [0.00000008, 0.00000001, 0.0000008],
+    dropout: [0.2, 0.5, 0.7],
+    grad_clip: [2.0, 3.0, 1.0, 5.0]
+  }
+
+
+Data:
+  path: Data/twitter_dataset.py
+  # Fields for predictions
+  classes: []
+  # prediction tags
+  tag_to_ix: {}
+  phases: ['train', 'test']
+
+
+# Path for model service
+Path:
+  train_path: # add your training data path here
+  test_path: # add your testing data path here. 
+  log_dir: logs
+
+
