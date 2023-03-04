@@ -18,7 +18,7 @@ ptsd_hashtags = ['#ptsdhelp', '#ptsdawareness', '#ptsdrecovery', '#ptsdsupport',
 #eating disorders
 eating_disorders_hashtags = ['#eatingdisorder', '#eatingdisorderhelp', '#anorexiahelp', '#bulimiahelp', '#ednos', '#ednoshelp', '#edrecovery', '#edawareness']
 #amalgamated hashtags
-mental_health_hashtags = general_hashtags + anxiety_hashtags + depression_hashtags + bipolar_hashtags + ptsd_hashtags + eating_disorders_hashtags
+mental_health_hashtags = anxiety_hashtags + depression_hashtags + bipolar_hashtags + ptsd_hashtags + eating_disorders_hashtags + general_hashtags 
 
 
 def normalizeToken(token):
@@ -102,6 +102,6 @@ def normalizeTweet(tweet):
 if __name__ == "__main__":
     print(
         normalizeTweet(
-            "RT @testuser TL;DR tldr I donâ€™t don't want and I'll can't SC has first 2 presumptive cases... .. of coronavirus, DHEC confirms https://postandcourier.com/health/covid19/sc-has-first-two-presumptive-cases-of-coronavirus-dhec-confirms/article_bddfe4ae-5fd3-11ea-9ce4-5f495366cee6.html?utm_medium=social&utm_source=twitter&utm_campaign=user-share… via @postandcourier on 18/2/23 #anxiety #yahoo"
+            "RT @testuser TL;DR tldr I donâ€™t don't want and I'll can't SC has first 2 presumptive cases... .. of coronavirus, DHEC confirms https://postandcourier.com/health/covid19/sc-has-first-two-presumptive-cases-of-coronavirus-dhec-confirms/article_bddfe4ae-5fd3-11ea-9ce4-5f495366cee6.html?utm_medium=social&utm_source=twitter&utm_campaign=user-share… via @postandcourier on 18/2/23 #anxiety #yahoo #AnxietyDisorder"
         )
     )
