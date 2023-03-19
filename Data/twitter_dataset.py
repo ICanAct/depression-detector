@@ -2,7 +2,6 @@ from torch.utils.data import Dataset
 from typing import List, _T_co
 
 
-# Class: TwitterDataset
 class TwitterDataset(Dataset):
     def __init__(self) -> None:
         super().__init__()
