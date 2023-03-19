@@ -14,6 +14,7 @@ class RedditDataset(Dataset):
         # define the data loading logic here
         self.unk_token = '<unk>'
         self.pad_token = '<pad>'
+        self.ix_to_class = {0: 'anxiety', 1: 'depression', 2: 'bipolar', 3: 'ptsd', 4: 'eatingdisorder'}
         self.frame = pd.read_csv(os.path.join(data_dir, file), usecols=['cleanedreddit', 'label'])
         self.frame = self.frame.dropna()
         self.samples = self.frame['cleanedreddit'].tolist()
