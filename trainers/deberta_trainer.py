@@ -1,13 +1,18 @@
-
 import torch
+import os
+from pathlib import Path
 from Data.reddit_dataset import RedditDataset
-from models.transformer import custom_transformer
+from models.deberta import custom_deberta
 from torch.utils.data import DataLoader, random_split
 from torch.nn.utils.rnn import pad_sequence
 import torch.nn.functional as F
+from transformers import DebertaTokenizerFast, AdamW, get_linear_schedule_with_warmup
 from torcheval.metrics import MulticlassAccuracy, MulticlassF1Score
 
-class custom_transformers_trainer():
+data_dir = os.path.join(Path(__file__).resolve().parents[1], "datasets")
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+
+class deberta_trainer():
     def __init__(self, model, train_dataset, test_dataset,epochs, batch_size, learning_rate, device):
         self.model = model
         self.ix_to_class = train_dataset.ix_to_class
@@ -18,26 +23,33 @@ class custom_transformers_trainer():
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.criterion = torch.nn.CrossEntropyLoss()
+        self.load_tokenizer()
         self.create_data_loaders()
         self.create_optimizer()
-        
+    
     def collate_fn(self, batch):
         data, target = zip(*batch)
-        data = pad_sequence(data, batch_first=True, padding_value=0)
+        output = self.tokenizer(data, truncation=True, padding='max_length', max_length=512, return_tensors="pt")
         target = torch.tensor(target)
-        return data, target
+        return output, target
+    
+    def load_tokenizer(self):
+        self.tokenizer = DebertaTokenizerFast.from_pretrained(os.path.join(data_dir, "DebertaTokenizer"), do_lower_case=True, max_len=512, pad_to_max_length=True)
     
     def create_data_loaders(self):
         train_set, valid_set  = random_split(self.train_dataset, [0.8, 0.2])
         self.train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
         self.valid_loader = DataLoader(valid_set, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
         self.test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
-        
+    
     def create_optimizer(self):
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = AdamW(self.model.parameters(), lr=self.learning_rate)
+        total_steps = len(self.train_loader) * self.epochs
+        self.scheduler = get_linear_schedule_with_warmup(self.optimizer, num_warmup_steps=0.01*total_steps, num_training_steps=total_steps)
+    
     
     def train(self):
-        
+            
         loss_total = 0
         loss_num = 0
         model = torch.compile(self.model)
@@ -45,13 +57,9 @@ class custom_transformers_trainer():
         model.train()
         for epoch in range(self.epochs):
             for step, (data, target) in enumerate(self.train_loader):
-                # creating mask
-                data, target = data.to(self.device), target.to(self.device)
+                input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
                 self.optimizer.zero_grad()
-                src_mask = torch.zeros((data.shape[1], data.shape[1]), device=self.device).type(torch.bool)
-                src_padding_mask = (data == 0)
-                src_padding_mask = src_padding_mask.to(self.device)
-                output = self.model(data, src_mask, src_padding_mask)
+                output = model(input_ids, attention_mask, token_type_ids)
                 loss = self.criterion(output, target)
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -63,9 +71,8 @@ class custom_transformers_trainer():
             
             print(f"Epoch: {epoch}, Loss: {loss_total/loss_num}")
             print("Evaluating on validation set")
-            self.evaluation(data_set='val')
-            
-    
+            self.evaluation('val')
+        
     
     def evaluation(self, data_set='val'):
         
@@ -82,15 +89,14 @@ class custom_transformers_trainer():
         loss_total = 0
         loss_num = 0
         
-        for data, targets in data_loader:
-            data, targets = data.to(self.device), targets.to(self.device)
-            src_mask = torch.zeros((data.shape[1], data.shape[1]), device=self.device).type(torch.bool)
-            src_padding_mask = (data == 0)
-            src_padding_mask = src_padding_mask.to(self.device)
-            logits = self.model(data, src_mask, src_padding_mask)
+        for step, (data, target) in enumerate(data_loader):
+            input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
+            self.optimizer.zero_grad()
+            logits = model(input_ids, attention_mask, token_type_ids)
+            
             total_logits.append(logits)
-            loss = self.criterion(logits, targets)
-            total_labels += targets.tolist()
+            loss = self.criterion(logits, target)
+            total_labels += target.tolist()
             loss_total += loss.item()
             loss_num += 1
         
@@ -98,9 +104,7 @@ class custom_transformers_trainer():
         
         _, total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
         total_labels = torch.tensor(total_labels)
-        
     
-        
         accuracy_obj = MulticlassAccuracy()
         accuracy_obj.update([total_logits, total_labels])
         accuracy = accuracy_obj.compute()
@@ -115,14 +119,14 @@ class custom_transformers_trainer():
     def save_model(self, path):
         torch.save(self.model.state_dict(), path)
 
-if __name__ == '__main__':
-    
-    DEVICE =  torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    train_data = RedditDataset('train_reddit.csv', bert=False)
-    test_data = RedditDataset('reddit_test.csv', bert=False)
-    model = custom_transformer(num_classes=5, dropout=0.2, custom_embeddings=True)
-    trainer = custom_transformers_trainer(model, train_data, test_data, epochs=30, batch_size=32, learning_rate=0.001, device=DEVICE)
+if __name__ == "__main__":
+    # load the dataset here
+    train_data = RedditDataset('train_reddit.csv', bert=True)
+    test_data = RedditDataset('reddit_test.csv', bert=True)
+    model = custom_deberta(num_classes=len(train_data.ix_to_class), dropout=0.5)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    trainer = deberta_trainer(model, train_data, test_data, epochs=2, batch_size=32, learning_rate=1e-4, device=device)
     trainer.train()
     trainer.evaluation('test')
     # path to save the weights. 
-    trainer.save_model('transformer_weights.pt')
+    trainer.save_model('deberta_model.pt')
