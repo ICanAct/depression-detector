@@ -47,7 +47,11 @@ def normalizeToken(token):
         return inf_eng.number_to_words(token)
         #normalize emojis
     elif len(token) == 1:
-        return demojize(token)
+        demojized_token = demojize(token)
+        if len(token) == 1:
+            return token.lower()
+        else:
+            return demojized_token
     else:
         if token == "’":
             return "'"
