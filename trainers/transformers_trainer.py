@@ -53,7 +53,6 @@ class custom_transformers_trainer():
                 src_padding_mask = src_padding_mask.to(self.device)
                 output = self.model(data, src_mask, src_padding_mask)
                 loss = self.criterion(output, target)
-                self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
                 loss_total += loss.item()
