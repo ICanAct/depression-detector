@@ -27,11 +27,11 @@ class custom_transformer(torch.nn.Module):
         # load the embeddings here
         self.embeddings = np.load(os.path.join(data_dir, "embs_npa.npy"), allow_pickle=True)
         
-    def forward(self, x, src_mask, src_padding_mask):
+    def forward(self, x, src_padding_mask):
         if self.custom_embeddings:
             x = self.embedding(x)
         
-        x = self.transformer_encoder(x, mask=src_mask, src_key_padding_mask=src_padding_mask)
+        x = self.transformer_encoder(x, src_key_padding_mask=src_padding_mask)
         x = torch.mean(x, dim=1)
         x = self.output_projection(x)
         x = F.relu(x)

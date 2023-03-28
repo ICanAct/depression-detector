@@ -54,10 +54,9 @@ class custom_transformers_trainer():
                 # creating mask
                 data, target = data.to(self.device), target.to(self.device)
                 self.optimizer.zero_grad()
-                src_mask = torch.zeros((data.shape[1], data.shape[1]), device=self.device).type(torch.bool)
                 src_padding_mask = (data == 0)
                 src_padding_mask = src_padding_mask.to(self.device)
-                output = self.model(data, src_mask, src_padding_mask)
+                output = self.model(data, src_padding_mask)
                 loss = self.criterion(output, target)
                 loss.backward()
                 self.optimizer.step()
@@ -96,10 +95,9 @@ class custom_transformers_trainer():
         
         for data, targets in data_loader:
             data, targets = data.to(self.device), targets.to(self.device)
-            src_mask = torch.zeros((data.shape[1], data.shape[1]), device=self.device).type(torch.bool)
             src_padding_mask = (data == 0)
             src_padding_mask = src_padding_mask.to(self.device)
-            logits = self.model(data, src_mask, src_padding_mask)
+            logits = self.model(data, src_padding_mask)
             total_logits.append(logits)
             loss = self.criterion(logits, targets)
             total_labels += targets.tolist()
