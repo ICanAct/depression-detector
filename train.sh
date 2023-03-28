@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=text_mining_project
+#SBATCH --job-name=text_mining_project_transformer
 #SBATCH -o model_log.out
 #SBATCH --gpus=a100:1
 #SBATCH --partition=medium
-#SBATCH --time=4320
+#SBATCH --time=150
 
-conda activate experiments
-python3 -u .trainers/transformers_trainer.py >> model_log.txt
+source activate experiments
+python3 -u depression-detector/main_transformer_run.py >> model_log.txt
 
