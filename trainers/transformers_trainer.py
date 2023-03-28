@@ -5,16 +5,17 @@ from models.transformer import custom_transformer
 from torch.utils.data import DataLoader, random_split
 from torch.nn.utils.rnn import pad_sequence
 import torch.nn.functional as F
-from torcheval.metrics import MulticlassAccuracy, MulticlassF1Score
+from torcheval.metrics.functional import multiclass_accuracy, multiclass_f1_score
 
 class custom_transformers_trainer():
-    def __init__(self, model, train_dataset, test_dataset,epochs, batch_size, learning_rate, device):
+    def __init__(self, model, train_dataset, test_dataset,epochs, batch_size, learning_rate, device, val_dataset=None):
         self.model = model
         self.ix_to_class = train_dataset.ix_to_class
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
         self.device = device
         self.epochs = epochs
+        self.val_dataset = val_dataset
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -28,7 +29,12 @@ class custom_transformers_trainer():
         return data, target
     
     def create_data_loaders(self):
-        train_set, valid_set  = random_split(self.train_dataset, [0.8, 0.2])
+        if self.val_dataset is None:
+            train_set, valid_set  = random_split(self.train_dataset, [0.8, 0.2])
+        else:
+            train_set = self.train_dataset
+            valid_set = self.val_dataset
+        
         self.train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
         self.valid_loader = DataLoader(valid_set, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
         self.test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
@@ -37,7 +43,7 @@ class custom_transformers_trainer():
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
     
     def train(self):
-        
+        min_val_loss = 100000
         loss_total = 0
         loss_num = 0
         model = torch.compile(self.model)
@@ -62,9 +68,16 @@ class custom_transformers_trainer():
             
             print(f"Epoch: {epoch}, Loss: {loss_total/loss_num}")
             print("Evaluating on validation set")
-            self.evaluation(data_set='val')
+            val_loss,val_acc, val_f1 = self.evaluation(data_set='val')
             
-    
+            print(f"Epoch: {epoch}, Val Loss: {val_loss}, Val Acc: {val_acc}, Val F1: {val_f1}")
+            if val_loss < min_val_loss:
+                
+                print("Saving model")
+                torch.save(self.model.state_dict(), "models/transformer.pt")
+                min_val_loss = val_loss
+
+
     
     def evaluation(self, data_set='val'):
         
@@ -93,23 +106,13 @@ class custom_transformers_trainer():
             loss_total += loss.item()
             loss_num += 1
         
-        print(f'Loss: {loss_total/loss_num}')
-        
+        total_loss = loss_total/loss_num
         _, total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
         total_labels = torch.tensor(total_labels)
+        accuracy = multiclass_accuracy(total_logits, total_labels)
+        f1_score = multiclass_f1_score(total_logits, total_labels)
         
-    
-        
-        accuracy_obj = MulticlassAccuracy()
-        accuracy_obj.update([total_logits, total_labels])
-        accuracy = accuracy_obj.compute()
-        print(f"Accuracy: {accuracy.item()}")
-        
-        f1_obj = MulticlassF1Score()
-        f1_obj.update([total_logits, total_labels])
-        f1_score = f1_obj.compute()
-        
-        print(f"F1 Score: {f1_score.item()}")
+        return total_loss, accuracy, f1_score
     
     def save_model(self, path):
         torch.save(self.model.state_dict(), path)
@@ -117,11 +120,13 @@ class custom_transformers_trainer():
 if __name__ == '__main__':
     
     DEVICE =  torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    train_data = RedditDataset('train_reddit.csv', bert=False)
-    test_data = RedditDataset('reddit_test.csv', bert=False)
-    model = custom_transformer(num_classes=5, dropout=0.2, custom_embeddings=True)
+    train_data = RedditDataset('train.csv', bert=False)
+    test_data = RedditDataset('reddit_golden_test.csv', bert=False)
+    valid_data = RedditDataset('test.csv', bert=False)
+    model = custom_transformer(num_classes=3, dropout=0.5, custom_embeddings=True)
     trainer = custom_transformers_trainer(model, train_data, test_data, epochs=30, batch_size=32, learning_rate=0.001, device=DEVICE)
     trainer.train()
+    print("Evaluating on test set")
     trainer.evaluation('test')
     # path to save the weights. 
-    trainer.save_model('transformer_weights.pt')
+    #trainer.save_model('transformer_weights.pt')
