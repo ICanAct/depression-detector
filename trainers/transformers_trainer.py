@@ -46,9 +46,9 @@ class custom_transformers_trainer():
         min_val_loss = 100000
         loss_total = 0
         loss_num = 0
-        model = torch.compile(self.model)
-        model = model.to(self.device)
-        model.train()
+        self.model = torch.compile(self.model)
+        self.model = self.model.to(self.device)
+        self.model.train()
         for epoch in range(self.epochs):
             for step, (data, target) in enumerate(self.train_loader):
                 # creating mask
@@ -85,11 +85,9 @@ class custom_transformers_trainer():
         elif data_set == 'test':
             data_loader = self.test_loader
             
-        model = torch.compile(self.model)
-        model = model.to(self.device)
         total_logits = []
         total_labels = []
-        model.eval()
+        self.model.eval()
         loss_total = 0
         loss_num = 0
         
