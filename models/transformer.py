@@ -18,7 +18,7 @@ class custom_transformer(torch.nn.Module):
             self.embedding = torch.nn.Embedding.from_pretrained(torch.from_numpy(self.embeddings).float(), freeze=True)
         
         self.transformer_encoder_layer = torch.nn.TransformerEncoderLayer(d_model=300, nhead=3, batch_first=True, dropout=dropout)
-        self.transformer_encoder = torch.nn.TransformerEncoder(self.transformer_encoder_layer, num_layers=3)
+        self.transformer_encoder = torch.nn.TransformerEncoder(self.transformer_encoder_layer, num_layers=2)
         
         self.output_projection = torch.nn.Linear(300, 64)
         self.classifier_head = torch.nn.Linear(64, num_classes)
