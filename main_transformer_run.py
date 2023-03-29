@@ -10,7 +10,7 @@ if __name__ == '__main__':
     test_data = RedditDataset('reddit_golden_test.csv', bert=False)
     valid_data = RedditDataset('test.csv', bert=False)
     model = custom_transformer(num_classes=3, dropout=0.5, custom_embeddings=True)
-    trainer = custom_transformers_trainer(model, train_data, test_data, epochs=30, batch_size=16, learning_rate=0.001, device=DEVICE)
+    trainer = custom_transformers_trainer(model, train_data, test_data, epochs=30, batch_size=32, learning_rate=0.001, device=DEVICE)
     trainer.train()
     print("Evaluating on test set")
     trainer.evaluation('test')
