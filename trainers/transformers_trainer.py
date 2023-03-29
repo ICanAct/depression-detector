@@ -73,7 +73,7 @@ class custom_transformers_trainer():
             if val_loss < min_val_loss:
                 
                 print("Saving model")
-                torch.save(self.model.state_dict(), "models/transformer.pt")
+                torch.save(self.model.state_dict(), "transformer_chekpoint.pt")
                 min_val_loss = val_loss
 
 
@@ -104,7 +104,7 @@ class custom_transformers_trainer():
         
         total_loss = loss_total/loss_num
         total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
-        total_labels = torch.tensor(total_labels)
+        total_labels = torch.tensor(total_labels, device=self.device)
         accuracy = multiclass_accuracy(total_logits, total_labels)
         f1_score = multiclass_f1_score(total_logits, total_labels)
         
