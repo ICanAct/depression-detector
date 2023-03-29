@@ -7,16 +7,17 @@ from torch.utils.data import DataLoader, random_split
 from torch.nn.utils.rnn import pad_sequence
 import torch.nn.functional as F
 from transformers import DebertaTokenizerFast, AdamW, get_linear_schedule_with_warmup
-from torcheval.metrics import MulticlassAccuracy, MulticlassF1Score
+from torcheval.metrics.functional import multiclass_accuracy, multiclass_f1_score
 
 data_dir = os.path.join(Path(__file__).resolve().parents[1], "datasets")
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 class deberta_trainer():
-    def __init__(self, model, train_dataset, test_dataset,epochs, batch_size, learning_rate, device):
+    def __init__(self, model, train_dataset, test_dataset,epochs, batch_size, learning_rate, device, val_dataset=None):
         self.model = model
         self.ix_to_class = train_dataset.ix_to_class
         self.train_dataset = train_dataset
+        self.val_dataset = val_dataset
         self.test_dataset = test_dataset
         self.device = device
         self.epochs = epochs
@@ -37,7 +38,12 @@ class deberta_trainer():
         self.tokenizer = DebertaTokenizerFast.from_pretrained(os.path.join(data_dir, "DebertaTokenizer"), do_lower_case=True, max_len=512, pad_to_max_length=True)
     
     def create_data_loaders(self):
-        train_set, valid_set  = random_split(self.train_dataset, [0.8, 0.2])
+        if self.val_dataset is None:
+            train_set, valid_set  = random_split(self.train_dataset, [0.8, 0.2])
+        else:
+            train_set = self.train_dataset
+            valid_set = self.val_dataset
+        
         self.train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
         self.valid_loader = DataLoader(valid_set, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
         self.test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
@@ -49,17 +55,17 @@ class deberta_trainer():
     
     
     def train(self):
-            
+        min_val_loss = 100000
         loss_total = 0
         loss_num = 0
-        model = torch.compile(self.model)
-        model = model.to(self.device)
-        model.train()
+        self.model = torch.compile(self.model)
+        self.model = self.model.to(self.device)
+        self.model.train()
         for epoch in range(self.epochs):
             for step, (data, target) in enumerate(self.train_loader):
                 input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
                 self.optimizer.zero_grad()
-                output = model(input_ids, attention_mask, token_type_ids)
+                output = self.model(input_ids, attention_mask, token_type_ids)
                 loss = self.criterion(output, target)
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -71,7 +77,14 @@ class deberta_trainer():
             
             print(f"Epoch: {epoch}, Loss: {loss_total/loss_num}")
             print("Evaluating on validation set")
-            self.evaluation('val')
+            val_loss,val_acc, val_f1 = self.evaluation(data_set='val')
+            
+            print(f"Epoch: {epoch}, Val Loss: {val_loss}, Val Acc: {val_acc}, Val F1: {val_f1}")
+            if val_loss < min_val_loss:
+                
+                print("Saving model")
+                torch.save(self.model.state_dict(), "models/deberta.pt")
+                min_val_loss = val_loss
         
     
     def evaluation(self, data_set='val'):
@@ -81,18 +94,17 @@ class deberta_trainer():
         elif data_set == 'test':
             data_loader = self.test_loader
             
-        model = torch.compile(self.model)
-        model = model.to(self.device)
+            
         total_logits = []
         total_labels = []
-        model.eval()
+        self.model.eval()
         loss_total = 0
         loss_num = 0
         
         for step, (data, target) in enumerate(data_loader):
             input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
             self.optimizer.zero_grad()
-            logits = model(input_ids, attention_mask, token_type_ids)
+            logits = self.model(input_ids, attention_mask, token_type_ids)
             
             total_logits.append(logits)
             loss = self.criterion(logits, target)
@@ -100,33 +112,13 @@ class deberta_trainer():
             loss_total += loss.item()
             loss_num += 1
         
-        print(f'Loss: {loss_total/loss_num}')
-        
-        _, total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
+        total_loss = loss_total/loss_num
+        total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
         total_labels = torch.tensor(total_labels)
-    
-        accuracy_obj = MulticlassAccuracy()
-        accuracy_obj.update([total_logits, total_labels])
-        accuracy = accuracy_obj.compute()
-        print(f"Accuracy: {accuracy.item()}")
-        
-        f1_obj = MulticlassF1Score()
-        f1_obj.update([total_logits, total_labels])
-        f1_score = f1_obj.compute()
-        
-        print(f"F1 Score: {f1_score.item()}")
-    
+        accuracy = multiclass_accuracy(total_logits, total_labels)
+        f1_score = multiclass_f1_score(total_logits, total_labels)
+
+        return total_loss, accuracy, f1_score
     def save_model(self, path):
         torch.save(self.model.state_dict(), path)
 
-if __name__ == "__main__":
-    # load the dataset here
-    train_data = RedditDataset('train_reddit.csv', bert=True)
-    test_data = RedditDataset('reddit_test.csv', bert=True)
-    model = custom_deberta(num_classes=len(train_data.ix_to_class), dropout=0.5)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    trainer = deberta_trainer(model, train_data, test_data, epochs=2, batch_size=32, learning_rate=1e-4, device=device)
-    trainer.train()
-    trainer.evaluation('test')
-    # path to save the weights. 
-    trainer.save_model('deberta_model.pt')

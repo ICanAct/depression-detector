@@ -103,7 +103,7 @@ class custom_transformers_trainer():
             loss_num += 1
         
         total_loss = loss_total/loss_num
-        _, total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
+        total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
         total_labels = torch.tensor(total_labels)
         accuracy = multiclass_accuracy(total_logits, total_labels)
         f1_score = multiclass_f1_score(total_logits, total_labels)
