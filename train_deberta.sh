@@ -4,7 +4,7 @@
 #SBATCH --gpus=1
 #SBATCH --partition=medium
 #SBATCH --time=150
-
+#SBATCH --nodelist=xgph5
 
 nvidia-smi
 source activate experiments
