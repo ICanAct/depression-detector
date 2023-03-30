@@ -5,10 +5,10 @@ from trainers.deberta_trainer import deberta_trainer
 if __name__ == "__main__":
     
     DEVICE =  torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    train_data = RedditDataset('train.csv', bert=False)
-    test_data = RedditDataset('reddit_golden_test.csv', bert=False)
-    valid_data = RedditDataset('test.csv', bert=False)
-    model = custom_deberta(num_classes=3, dropout=0.5)
+    train_data = RedditDataset('train.csv', bert=True)
+    test_data = RedditDataset('reddit_golden_test.csv', bert=True)
+    valid_data = RedditDataset('test.csv', bert=True)
+    model = custom_deberta(num_classes=3, dropout=0.3)
     trainer = deberta_trainer(model, train_data, test_data, epochs=5, batch_size=32, learning_rate=1e-4, device=DEVICE, val_dataset=valid_data)
     trainer.train()
     print("Evaluating on test set")

@@ -83,7 +83,7 @@ class deberta_trainer():
             if val_loss < min_val_loss:
                 
                 print("Saving model")
-                torch.save(self.model.state_dict(), "models/deberta.pt")
+                torch.save(self.model.state_dict(), "deberta_checkpoint.pt")
                 min_val_loss = val_loss
         
     
