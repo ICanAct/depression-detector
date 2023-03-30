@@ -69,7 +69,6 @@ class deberta_trainer():
                     self.optimizer.zero_grad()
                     output = self.model(input_ids, attention_mask, token_type_ids)
                     loss = self.criterion(output, target)
-                    self.optimizer.zero_grad()
                     loss.backward()
                     self.optimizer.step()
                     loss_total += loss.item()
