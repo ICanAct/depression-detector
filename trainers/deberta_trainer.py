@@ -63,12 +63,13 @@ class deberta_trainer():
         
         for epoch in range(self.epochs):
             self.model.train()
+            #torch.cuda.empty_cache() 
             with torch.enable_grad():
                 for step, (data, target) in enumerate(self.train_loader):
                     input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
-                    self.optimizer.zero_grad()
                     output = self.model(input_ids, attention_mask, token_type_ids)
                     loss = self.criterion(output, target)
+                    self.optimizer.zero_grad()
                     loss.backward()
                     self.optimizer.step()
                     loss_total += loss.item()

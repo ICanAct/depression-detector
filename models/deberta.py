@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import numpy as np
 import os
 from pathlib import Path
-from transformers import AutoModel
+from transformers import DebertaModel
 
 data_dir = os.path.join(Path(__file__).resolve().parents[1], "datasets")
 
@@ -20,7 +20,7 @@ class custom_deberta(torch.nn.Module):
         self.classifier = torch.nn.Linear(32, self.num_classes)
         
     def load_deberta(self):
-        self.deberta = AutoModel.from_pretrained(os.path.join(data_dir, "DebertaLatestCheckpoint"))
+        self.deberta = DebertaModel.from_pretrained(os.path.join(data_dir, "DebertaLatestCheckpoint"))
         
     def forward(self, input_ids, attention_mask, token_type_ids):
         output = self.deberta(input_ids=input_ids, 
@@ -29,7 +29,7 @@ class custom_deberta(torch.nn.Module):
                     return_dict=True,
                 )
         output = output[0]
-        output = self.dropout_layer(output)
+        #output = self.dropout_layer(output)
         # This is to get a sense of the whole sentence embedding. (because we are using a classification task)
         output = torch.mean(output, dim=1)
         output = F.relu(self.output_projection(output))

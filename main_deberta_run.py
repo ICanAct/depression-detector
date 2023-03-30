@@ -9,7 +9,7 @@ if __name__ == "__main__":
     test_data = RedditDataset('reddit_golden_test.csv', bert=True)
     valid_data = RedditDataset('test.csv', bert=True)
     model = custom_deberta(num_classes=3, dropout=0.3)
-    trainer = deberta_trainer(model, train_data, test_data, epochs=5, batch_size=32, learning_rate=1e-4, device=DEVICE, val_dataset=valid_data)
+    trainer = deberta_trainer(model, train_data, test_data, epochs=5, batch_size=16, learning_rate=1e-5, device=DEVICE, val_dataset=valid_data)
     trainer.train()
     print("Evaluating on test set")
     test_loss, test_acc, test_f1 = trainer.evaluation('test')
