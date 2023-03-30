@@ -60,20 +60,22 @@ class deberta_trainer():
         loss_num = 0
         self.model = torch.compile(self.model)
         self.model = self.model.to(self.device)
-        self.model.train()
+        
         for epoch in range(self.epochs):
-            for step, (data, target) in enumerate(self.train_loader):
-                input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
-                self.optimizer.zero_grad()
-                output = self.model(input_ids, attention_mask, token_type_ids)
-                loss = self.criterion(output, target)
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
-                loss_total += loss.item()
-                loss_num += 1
-                if step % 100 == 0 and step!=0:
-                    print(f"Epoch: {epoch}, Step: {step}, Loss: {loss_total/loss_num}")
+            self.model.train()
+            with torch.enable_grad():
+                for step, (data, target) in enumerate(self.train_loader):
+                    input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
+                    self.optimizer.zero_grad()
+                    output = self.model(input_ids, attention_mask, token_type_ids)
+                    loss = self.criterion(output, target)
+                    self.optimizer.zero_grad()
+                    loss.backward()
+                    self.optimizer.step()
+                    loss_total += loss.item()
+                    loss_num += 1
+                    if step % 100 == 0 and step!=0:
+                        print(f"Epoch: {epoch}, Step: {step}, Loss: {loss_total/loss_num}")
             
             print(f"Epoch: {epoch}, Loss: {loss_total/loss_num}")
             print("Evaluating on validation set")
