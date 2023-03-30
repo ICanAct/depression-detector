@@ -77,7 +77,7 @@ class custom_transformers_trainer():
                 min_val_loss = val_loss
 
 
-    
+    @torch.no_grad()
     def evaluation(self, data_set='val'):
         
         if data_set == 'val':

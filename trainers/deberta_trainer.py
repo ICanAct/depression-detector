@@ -86,7 +86,7 @@ class deberta_trainer():
                 torch.save(self.model.state_dict(), "deberta_checkpoint.pt")
                 min_val_loss = val_loss
         
-    
+    @torch.no_grad()
     def evaluation(self, data_set='val'):
         
         if data_set == 'val':
