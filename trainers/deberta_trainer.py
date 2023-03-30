@@ -86,7 +86,7 @@ class deberta_trainer():
                 torch.save(self.model.state_dict(), "deberta_checkpoint.pt")
                 min_val_loss = val_loss
         
-    @torch.no_grad()
+    
     def evaluation(self, data_set='val'):
         
         if data_set == 'val':
@@ -100,23 +100,22 @@ class deberta_trainer():
         self.model.eval()
         loss_total = 0
         loss_num = 0
-        
-        for step, (data, target) in enumerate(data_loader):
-            input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
-            self.optimizer.zero_grad()
-            logits = self.model(input_ids, attention_mask, token_type_ids)
+        with torch.no_grad():
+            for step, (data, target) in enumerate(data_loader):
+                input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
+                logits = self.model(input_ids, attention_mask, token_type_ids)
             
-            total_logits.append(logits)
-            loss = self.criterion(logits, target)
-            total_labels += target.tolist()
-            loss_total += loss.item()
-            loss_num += 1
-        
-        total_loss = loss_total/loss_num
-        total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
-        total_labels = torch.tensor(total_labels, device=self.device)
-        accuracy = multiclass_accuracy(total_logits, total_labels)
-        f1_score = multiclass_f1_score(total_logits, total_labels)
+                total_logits.append(logits)
+                loss = self.criterion(logits, target)
+                total_labels += target.tolist()
+                loss_total += loss.item()
+                loss_num += 1
+            
+            total_loss = loss_total/loss_num
+            total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
+            total_labels = torch.tensor(total_labels, device=self.device)
+            accuracy = multiclass_accuracy(total_logits, total_labels)
+            f1_score = multiclass_f1_score(total_logits, total_labels)
 
         return total_loss, accuracy, f1_score
     
