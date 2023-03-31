@@ -9,7 +9,7 @@ if __name__ == "__main__":
     test_data = RedditDataset('reddit_golden_test.csv', bert=True)
     valid_data = RedditDataset('test.csv', bert=True)
     model = custom_deberta(num_classes=3, dropout=0.3)
-    trainer = deberta_trainer(model, train_data, test_data, epochs=5, batch_size=16, learning_rate=1e-5, device=DEVICE, val_dataset=valid_data)
+    trainer = deberta_trainer(model, train_data, test_data, epochs=10, batch_size=512, learning_rate=1e-5, device=DEVICE, val_dataset=valid_data)
     trainer.train()
     print("Evaluating on test set")
     test_loss, test_acc, test_f1 = trainer.evaluation('test')
@@ -17,4 +17,4 @@ if __name__ == "__main__":
     print(f"Test Loss: {test_loss}, Test Acc: {test_acc}, Test F1: {test_f1}")
     
     # path to save the weights. 
-    #trainer.save_model('deberta_model.pt')
+    trainer.save_model('deberta_model.pt')

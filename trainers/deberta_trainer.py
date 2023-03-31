@@ -1,5 +1,6 @@
 import torch
 import os
+import torch.optim as optim
 from pathlib import Path
 from Data.reddit_dataset import RedditDataset
 from models.deberta import custom_deberta
@@ -49,33 +50,33 @@ class deberta_trainer():
         self.test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
     
     def create_optimizer(self):
-        self.optimizer = AdamW(self.model.parameters(), lr=self.learning_rate)
-        total_steps = len(self.train_loader) * self.epochs
-        self.scheduler = get_linear_schedule_with_warmup(self.optimizer, num_warmup_steps=0.01*total_steps, num_training_steps=total_steps)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        #self.optimizer = AdamW(self.model.parameters(), lr=self.learning_rate)
+        #total_steps = len(self.train_loader) * self.epochs
+        #self.scheduler = get_linear_schedule_with_warmup(self.optimizer, num_warmup_steps=0.01*total_steps, num_training_steps=total_steps)
     
     
     def train(self):
         min_val_loss = 100000
-        loss_total = 0
-        loss_num = 0
         self.model = torch.compile(self.model)
         self.model = self.model.to(self.device)
         
         for epoch in range(self.epochs):
+            loss_total = 0
+            loss_num = 0
             self.model.train()
             #torch.cuda.empty_cache() 
-            with torch.enable_grad():
-                for step, (data, target) in enumerate(self.train_loader):
-                    input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
-                    output = self.model(input_ids, attention_mask, token_type_ids)
-                    loss = self.criterion(output, target)
-                    self.optimizer.zero_grad()
-                    loss.backward()
-                    self.optimizer.step()
-                    loss_total += loss.item()
-                    loss_num += 1
-                    if step % 100 == 0 and step!=0:
-                        print(f"Epoch: {epoch}, Step: {step}, Loss: {loss_total/loss_num}")
+            for step, (data, target) in enumerate(self.train_loader):
+                input_ids, attention_mask, token_type_ids, target = data['input_ids'].to(self.device), data['attention_mask'].to(self.device),data['token_type_ids'].to(self.device), target.to(self.device)
+                output = self.model(input_ids, attention_mask, token_type_ids)
+                loss = self.criterion(output, target)
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+                loss_total += loss.item()
+                loss_num += len(target)
+                if step % 100 == 0 and step!=0:
+                    print(f"Epoch: {epoch}, Step: {step}, Loss: {loss_total/loss_num}")
             
             print(f"Epoch: {epoch}, Loss: {loss_total/loss_num}")
             print("Evaluating on validation set")
@@ -117,7 +118,7 @@ class deberta_trainer():
             total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
             total_labels = torch.tensor(total_labels, device=self.device)
             accuracy = multiclass_accuracy(total_logits, total_labels)
-            f1_score = multiclass_f1_score(total_logits, total_labels)
+            f1_score = multiclass_f1_score(total_logits, total_labels, num_classes=self.model.num_classes, average=None)
 
         return total_loss, accuracy, f1_score
     

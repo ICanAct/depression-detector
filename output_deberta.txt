@@ -1,0 +1,22 @@
+Epoch: 0, Loss: 0.002038748566612449
+Evaluating on validation set
+Epoch: 0, Val Loss: 0.9243964823809537, Val Acc: 0.8344691395759583, Val F1: tensor([0.7980, 0.8114, 0.8942], device='cuda:0')
+Saving model
+Epoch: 1, Loss: 0.0016342821419334077
+Evaluating on validation set
+Epoch: 1, Val Loss: 0.7573807673020796, Val Acc: 0.8818148970603943, Val F1: tensor([0.8410, 0.8508, 0.9537], device='cuda:0')
+Saving model
+Epoch: 2, Loss: 0.001445169871844047
+Evaluating on validation set
+Epoch: 2, Val Loss: 0.7093772942369635, Val Acc: 0.9056671261787415, Val F1: tensor([0.8785, 0.8760, 0.9624], device='cuda:0')
+Saving model
+Epoch: 3, Loss: 0.0013691931499681454
+Evaluating on validation set
+Epoch: 3, Val Loss: 0.6743270809000189, Val Acc: 0.8929340243339539, Val F1: tensor([0.8617, 0.8599, 0.9586], device='cuda:0')
+Saving model
+Epoch: 4, Loss: 0.0012780912089807798
+Evaluating on validation set
+Epoch: 4, Val Loss: 0.62542893669822, Val Acc: 0.9078192114830017, Val F1: tensor([0.8809, 0.8769, 0.9664], device='cuda:0')
+Saving model
+Evaluating on test set
+Test Loss: 0.5561992526054382, Test Acc: 0.9550000429153442, Test F1: tensor([0.9681, 0.9517, 0.9446], device='cuda:0')
