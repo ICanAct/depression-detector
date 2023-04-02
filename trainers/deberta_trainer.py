@@ -57,7 +57,7 @@ class deberta_trainer():
     
     
     def train(self):
-        min_val_loss = 100000
+        max_val_acc = 0
         self.model = torch.compile(self.model)
         self.model = self.model.to(self.device)
         
@@ -74,7 +74,7 @@ class deberta_trainer():
                 loss.backward()
                 self.optimizer.step()
                 loss_total += loss.item()
-                loss_num += len(target)
+                loss_num += 1
                 if step % 100 == 0 and step!=0:
                     print(f"Epoch: {epoch}, Step: {step}, Loss: {loss_total/loss_num}")
             
@@ -83,11 +83,11 @@ class deberta_trainer():
             val_loss,val_acc, val_f1 = self.evaluation(data_set='val')
             
             print(f"Epoch: {epoch}, Val Loss: {val_loss}, Val Acc: {val_acc}, Val F1: {val_f1}")
-            if val_loss < min_val_loss:
+            if val_acc > max_val_acc:
                 
                 print("Saving model")
                 torch.save(self.model.state_dict(), "deberta_checkpoint.pt")
-                min_val_loss = val_loss
+                max_val_acc = val_acc
         
     
     def evaluation(self, data_set='val'):
@@ -118,7 +118,7 @@ class deberta_trainer():
             total_logits = F.softmax(torch.cat(total_logits, dim=0).detach(), dim=1)
             total_labels = torch.tensor(total_labels, device=self.device)
             accuracy = multiclass_accuracy(total_logits, total_labels)
-            f1_score = multiclass_f1_score(total_logits, total_labels, num_classes=self.model.num_classes, average=None)
+            f1_score = multiclass_f1_score(total_logits, total_labels, num_classes=self.model.num_classes, average='macro')
 
         return total_loss, accuracy, f1_score
     
