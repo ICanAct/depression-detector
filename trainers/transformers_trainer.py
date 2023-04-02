@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader, random_split
 from torch.nn.utils.rnn import pad_sequence
 import torch.nn.functional as F
 from torcheval.metrics.functional import multiclass_accuracy, multiclass_f1_score
+from sklearn.metrics import classification_report
 
 class custom_transformers_trainer():
     def __init__(self, model, train_dataset, test_dataset,epochs, batch_size, learning_rate, device, val_dataset=None):
@@ -108,6 +109,9 @@ class custom_transformers_trainer():
         accuracy = multiclass_accuracy(total_logits, total_labels)
         f1_score = multiclass_f1_score(total_logits, total_labels)
         
+        report = classification_report(total_labels.cpu().numpy(), total_logits.argmax(dim=1).cpu().numpy(), digits=4)
+        print("Classification Report for transformer model for ", data_set, " set")
+        print(report)
         return total_loss, accuracy, f1_score
     
     def save_model(self, path):

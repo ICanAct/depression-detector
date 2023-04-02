@@ -9,6 +9,7 @@ from torch.nn.utils.rnn import pad_sequence
 import torch.nn.functional as F
 from transformers import DebertaTokenizerFast, AdamW, get_linear_schedule_with_warmup
 from torcheval.metrics.functional import multiclass_accuracy, multiclass_f1_score
+from sklearn.metrics import classification_report
 
 data_dir = os.path.join(Path(__file__).resolve().parents[1], "datasets")
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
@@ -119,7 +120,9 @@ class deberta_trainer():
             total_labels = torch.tensor(total_labels, device=self.device)
             accuracy = multiclass_accuracy(total_logits, total_labels)
             f1_score = multiclass_f1_score(total_logits, total_labels, num_classes=self.model.num_classes, average='macro')
-
+            report = classification_report(total_labels.cpu().numpy(), total_logits.argmax(dim=1).cpu().numpy(), digits=4)
+            print("Classification Report for deberta model for ", data_set, " set")
+            print(report)
         return total_loss, accuracy, f1_score
     
     def save_model(self, path):
