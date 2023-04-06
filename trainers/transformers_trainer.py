@@ -53,18 +53,20 @@ class custom_transformers_trainer():
         for epoch in range(self.epochs):
             for step, (data, target) in enumerate(self.train_loader):
                 # creating mask
-                data, target = data.to(self.device), target.to(self.device)
-                self.optimizer.zero_grad()
-                src_padding_mask = (data == 0)
-                src_padding_mask = src_padding_mask.to(self.device).view(data.shape[1], -1)
-                output = self.model(data, src_padding_mask)
-                loss = self.criterion(output, target)
-                loss.backward()
-                self.optimizer.step()
-                loss_total += loss.item()
-                loss_num += 1
-                if step % 100 == 0 and step!=0:
-                    print(f"Epoch: {epoch}, Step: {step}, Loss: {loss_total/loss_num}")
+                self.model.train()
+                with torch.enable_grad():
+                    data, target = data.to(self.device), target.to(self.device)
+                    self.optimizer.zero_grad()
+                    src_padding_mask = (data == 0)
+                    src_padding_mask = src_padding_mask.to(self.device).view(data.shape[1], -1)
+                    output = self.model(data, src_padding_mask)
+                    loss = self.criterion(output, target)
+                    loss.backward()
+                    self.optimizer.step()
+                    loss_total += loss.item()
+                    loss_num += 1
+                    if step % 100 == 0 and step!=0:
+                        print(f"Epoch: {epoch}, Step: {step}, Loss: {loss_total/loss_num}")
             
             print(f"Epoch: {epoch}, Loss: {loss_total/loss_num}")
             print("Evaluating on validation set")
