@@ -25,7 +25,7 @@ class custom_transformers_trainer():
         
     def collate_fn(self, batch):
         data, target = zip(*batch)
-        data = pad_sequence(data, batch_first=True, padding_value=0)
+        data = pad_sequence(data, padding_value=0)
         target = torch.tensor(target)
         return data, target
     
@@ -56,7 +56,7 @@ class custom_transformers_trainer():
                 data, target = data.to(self.device), target.to(self.device)
                 self.optimizer.zero_grad()
                 src_padding_mask = (data == 0)
-                src_padding_mask = src_padding_mask.to(self.device)
+                src_padding_mask = src_padding_mask.to(self.device).view(data.shape[1], -1)
                 output = self.model(data, src_padding_mask)
                 loss = self.criterion(output, target)
                 loss.backward()
@@ -95,7 +95,7 @@ class custom_transformers_trainer():
         for data, targets in data_loader:
             data, targets = data.to(self.device), targets.to(self.device)
             src_padding_mask = (data == 0)
-            src_padding_mask = src_padding_mask.to(self.device)
+            src_padding_mask = src_padding_mask.to(self.device).view(data.shape[1], -1)
             logits = self.model(data, src_padding_mask)
             total_logits.append(logits)
             loss = self.criterion(logits, targets)
